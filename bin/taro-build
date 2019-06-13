@@ -1,0 +1,91 @@
+#!/usr/bin/env node
+const path = require('path')
+const fs = require('fs-extra')
+const program = require('commander')
+const chalk = require('chalk')
+const _ = require('lodash')
+
+const build = require('../dist/build').default
+
+// 常量文件
+// PROJECT_CONFIG -- config/index.js
+// BUILD_TYPES -- 支持构建的类型常量 如 'weapp'
+const { PROJECT_CONFIG, BUILD_TYPES } = require('../dist/util/constants')
+
+// 获取node执行的目录，就是项目目录
+const appPath = process.cwd()
+
+// 获取项目目录下的 config/index.js 文件路径
+const projectConfPath = path.join(appPath, PROJECT_CONFIG)
+
+program
+  .option('--type [typeName]', 'Build type, weapp/swan/alipay/tt/h5/quickapp/rn/qq')
+  .option('--watch', 'Watch mode')
+  .option('--env [env]', 'Env type')
+  .option('--ui', 'Build Taro UI library')
+  .option('--plugin [typeName]', 'Build Taro plugin project, weapp')
+  .option('--port [port]', 'Specified port')
+  .option('--release', 'Release quickapp')
+  .parse(process.argv)
+
+const { type, watch, ui, port, release } = program
+let { env, plugin } = program
+
+env = process.env.NODE_ENV || env
+
+// 参数中有ui
+if (ui) {
+  console.log(chalk.green(`开始编译 UI 库`))
+  build(appPath, {
+    type: 'ui',
+    watch
+  })
+  return
+}
+
+// 参数中有 plugin
+if (plugin) {
+  if (typeof plugin === 'boolean') {
+    plugin = BUILD_TYPES.WEAPP
+  }
+  build(appPath, {
+    type: BUILD_TYPES.PLUGIN,
+    platform: plugin,
+    watch
+  })
+  return
+}
+
+// 确保可以找到 项目目录下的 config/index.js 文件
+if (!fs.existsSync(projectConfPath)) {
+  console.log(chalk.red(`找不到项目配置文件${PROJECT_CONFIG}，请确定当前目录是Taro项目根目录!`))
+  process.exit(1)
+}
+
+// 设置 process.env.NODE_ENV 的值
+if (env) {
+  process.env.NODE_ENV = env
+} else {
+  if (watch) {
+    process.env.NODE_ENV = 'development'
+  } else {
+    process.env.NODE_ENV = 'production'
+  }
+}
+
+// 设置 process.env.TARO_ENV 的值
+process.env.TARO_ENV = type
+
+// 执行 项目目录下的 config/index.js 中的方法 --- 返回值会根据 process.env.NODE_ENV
+// 的取值合并 dev.js 或者是 prod.js 中的配置的到返回值
+const projectConf = require(projectConfPath)(_.merge)
+console.log(chalk.green(`开始编译项目 ${chalk.bold(projectConf.projectName)}`))
+
+// 执行核心的build方法
+// appPath 是项目根目录
+build(appPath, {
+  type,
+  watch,
+  port: typeof port === 'string' ? port: undefined,
+  release: !!release
+})
