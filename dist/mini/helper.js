@@ -32,49 +32,92 @@ function setIsProduction(isProduction) {
     BuildData.isProduction = isProduction;
 }
 exports.setIsProduction = setIsProduction;
+
+// appPath 项目根路径
+// adapter 当前需要适配的平台
 function setBuildData(appPath, adapter) {
+
+    // 项目根路径下的 config/index.js
     const configDir = path.join(appPath, constants_1.PROJECT_CONFIG);
+
     const projectConfig = require(configDir)(_.merge);
+
+    // src 目录
     const sourceDirName = projectConfig.sourceRoot || config_1.default.SOURCE_DIR;
+
+    // 输出目录
     const outputDirName = projectConfig.outputRoot || config_1.default.OUTPUT_DIR;
     const sourceDir = path.join(appPath, sourceDirName);
     const outputDir = path.join(appPath, outputDirName);
+
+    // path.join(sourceDir, config_1.default.ENTRY) ---> 项目根目录下的 src/app
+    // 找到入口文件 ---> util_1.resolveScriptPath 获取入口文件的方法
     const entryFilePath = util_1.resolveScriptPath(path.join(sourceDir, config_1.default.ENTRY));
+
+    // 获取 入口文件的 文件名 ---> app.js
     const entryFileName = path.basename(entryFilePath);
+
+    // 
     const pathAlias = projectConfig.alias || {};
+
+    // 获取在 项目根目录下的 config 中的weapp 相关的配置项
     const weappConf = projectConfig.weapp || {};
+
+
     const npmConfig = Object.assign({
-        name: config_1.default.NPM_DIR,
+        name: config_1.default.NPM_DIR,  // npm
         dir: null
     }, weappConf.npm);
+
+
     const useCompileConf = Object.assign({}, weappConf.compile);
+
     const compileInclude = useCompileConf.include || [];
+
+    // BuildData 是模块中全局变量
     BuildData = {
-        appPath,
-        configDir,
-        sourceDirName,
-        outputDirName,
-        sourceDir,
-        outputDir,
+        appPath, // 项目根目录
+        configDir, // config/index.js
+        sourceDirName, // src
+        outputDirName, // dist
+        sourceDir, // 项目根目录 下的 src
+        outputDir, // 项目根目录下的 dist
         originalOutputDir: outputDir,
-        entryFilePath,
-        entryFileName,
-        projectConfig,
-        npmConfig,
+        entryFilePath, // 项目根目录 src/app.js
+        entryFileName, // app.js
+        projectConfig, // 项目根目录下的 config 配置
+        npmConfig, // npm
         alias: pathAlias,
         isProduction: false,
         appConfig: {},
         pageConfigs: new Map(),
         compileInclude,
-        buildAdapter: adapter,
+        buildAdapter: adapter, // weapp
+        /**
+         * 输出的文件类型
+         * {
+                TEMPL: ".wxml",
+                STYLE: ".wxss",
+                SCRIPT: ".js",
+                CONFIG: ".json"
+            }
+         */
         outputFilesTypes: constants_1.MINI_APP_FILES[adapter],
+
+        // projectConfig.env ---> undefined
+        // projectConfig.defineConstants ---> {}
+        // {'process.env.TARO_ENV': 'weapp'}
         constantsReplaceList: Object.assign({}, util_1.generateEnvList(projectConfig.env || {}), util_1.generateConstantsList(projectConfig.defineConstants || {}), {
             'process.env.TARO_ENV': adapter
         }),
+
+        // path.join(appPath, constants_1.NODE_MODULES) ----> 项目根目录下的 node_modules
+        // TODO 2019-06-13 22:58
         nodeModulesPath: util_1.recursiveFindNodeModules(path.join(appPath, constants_1.NODE_MODULES)),
         npmOutputDir: npmExact_1.getNpmOutputDir(outputDir, configDir, npmConfig),
         jsxAttributeNameReplace: weappConf.jsxAttributeNameReplace || {}
     };
+
     // 可以自定义输出文件类型
     if (weappConf.customFilesTypes && !util_1.isEmptyObject(weappConf.customFilesTypes)) {
         BuildData.outputFilesTypes = Object.assign({}, BuildData.outputFilesTypes, weappConf.customFilesTypes[adapter] || {});

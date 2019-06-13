@@ -158,18 +158,29 @@ function urlJoin(...agrs) {
 }
 exports.urlJoin = urlJoin;
 function resolveScriptPath(p) {
+    // src/app
     const realPath = p;
+
+    // weapp
     const taroEnv = process.env.TARO_ENV;
+
+    // constants_1.JS_EXT ---> ['.js', '.jsx']
+    // constants_1.TS_EXT ---> ['.ts', '.tsx']
     const SCRIPT_EXT = constants_1.JS_EXT.concat(constants_1.TS_EXT);
     for (let i = 0; i < SCRIPT_EXT.length; i++) {
         const item = SCRIPT_EXT[i];
         if (taroEnv) {
+            // 支持 src/app.weapp.js 作为入口文件
             if (fs.existsSync(`${p}.${taroEnv}${item}`)) {
                 return `${p}.${taroEnv}${item}`;
             }
+
+            // 支持 src/app/index.weapp.js 作为入口文件
             if (fs.existsSync(`${p}${path.sep}index.${taroEnv}${item}`)) {
                 return `${p}${path.sep}index.${taroEnv}${item}`;
             }
+
+            // 
             if (fs.existsSync(`${p.replace(/\/index$/, `.${taroEnv}/index`)}${item}`)) {
                 return `${p.replace(/\/index$/, `.${taroEnv}/index`)}${item}`;
             }

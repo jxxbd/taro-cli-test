@@ -206,7 +206,11 @@ function runQuickApp(isWatch, buildData, port, release) {
 // TODO -- 20190612
 function build(appPath, { watch, adapter = "weapp" /* WEAPP */, envHasBeenSet = false, port, release }) {
     return __awaiter(this, void 0, void 0, function* () {
+
+        // 获取 buildData
         const buildData = helper_1.setBuildData(appPath, adapter);
+
+        
         const isQuickApp = adapter === "quickapp" /* QUICKAPP */;
         process.env.TARO_ENV = adapter;
         if (!envHasBeenSet) {
