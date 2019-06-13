@@ -21,26 +21,43 @@ const entry_1 = require("./entry");
 const page_1 = require("./page");
 const watch_1 = require("./watch");
 const dowload_1 = require("../util/dowload");
+
+// 在 dist 目录下输出 project.config.json 文件及内容
 function buildProjectConfig() {
+
+    // 获取 buildData
+    // buildAdapter -- weapp
+    // sourceDir -- src
+    // outputDir -- dist
     const { buildAdapter, sourceDir, outputDir, outputDirName, appPath } = helper_1.getBuildData();
+    
+    // 设置 projectConfigFileName 的值，如果是 weapp 或 qq 直接设置为 project.config.json
     let projectConfigFileName = `project.${buildAdapter}.json`;
     if (buildAdapter === "weapp" /* WEAPP */ || buildAdapter === "qq" /* QQ */) {
         projectConfigFileName = 'project.config.json';
     }
+
     let projectConfigPath = path.join(appPath, projectConfigFileName);
+
+    // 确保在 根目录下 或者是 根目录的 src 下 存在 project.config.json 文件
     if (!fs.existsSync(projectConfigPath)) {
         projectConfigPath = path.join(sourceDir, projectConfigFileName);
         if (!fs.existsSync(projectConfigPath))
             return;
     }
+
     const origProjectConfig = fs.readJSONSync(projectConfigPath);
     if (buildAdapter === "tt" /* TT */) {
         projectConfigFileName = 'project.config.json';
     }
     fs.ensureDirSync(outputDir);
+
+    // 在 dist 目录下创建 project.config.json 文件，并且写入内容
     fs.writeFileSync(path.join(outputDir, projectConfigFileName), JSON.stringify(Object.assign({}, origProjectConfig, { miniprogramRoot: './' }), null, 2));
     util_1.printLog("generate" /* GENERATE */, '工具配置', `${outputDirName}/${projectConfigFileName}`);
 }
+
+//
 function buildFrameworkInfo() {
     return __awaiter(this, void 0, void 0, function* () {
         // 百度小程序编译出 .frameworkinfo 文件
@@ -203,24 +220,34 @@ function runQuickApp(isWatch, buildData, port, release) {
 
 // 构建小程序的方法
 // appPath 项目根路径
-// TODO -- 20190612
+// TODO -- 20190612 -- resolved
 function build(appPath, { watch, adapter = "weapp" /* WEAPP */, envHasBeenSet = false, port, release }) {
     return __awaiter(this, void 0, void 0, function* () {
 
         // 获取 buildData
         const buildData = helper_1.setBuildData(appPath, adapter);
 
-        
+        // false
         const isQuickApp = adapter === "quickapp" /* QUICKAPP */;
         process.env.TARO_ENV = adapter;
+
+        // 将 buildData 的 isProduction 值设置为  process.env.NODE_ENV === 'production' || !watch
         if (!envHasBeenSet) {
             helper_1.setIsProduction(process.env.NODE_ENV === 'production' || !watch);
         }
+
+        // 创建 输出文件夹目录
         fs.ensureDirSync(buildData.outputDir);
+
+        
         if (!isQuickApp) {
+            // 在 dist 目录下输出 project.config.json
             buildProjectConfig();
+            // 针对 百度小程序 百度小程序编译出 .frameworkinfo 文件
             yield buildFrameworkInfo();
         }
+
+        // TODO 20190614 07:44
         util_1.copyFiles(appPath, buildData.projectConfig.copy);
         const appConfig = yield entry_1.buildEntry();
         helper_1.setAppConfig(appConfig);

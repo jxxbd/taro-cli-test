@@ -35,6 +35,7 @@ exports.setIsProduction = setIsProduction;
 
 // appPath 项目根路径
 // adapter 当前需要适配的平台
+// 用来设置当前模块中的全局变量 BuildData
 function setBuildData(appPath, adapter) {
 
     // 项目根路径下的 config/index.js
@@ -112,9 +113,12 @@ function setBuildData(appPath, adapter) {
         }),
 
         // path.join(appPath, constants_1.NODE_MODULES) ----> 项目根目录下的 node_modules
-        // TODO 2019-06-13 22:58
+        // recursiveFindNodeModules 方法的作用是会在指定目录下一级一级向上寻找 node_modules 文件夹
+        // TODO 2019-06-13 22:58 -- resolved
         nodeModulesPath: util_1.recursiveFindNodeModules(path.join(appPath, constants_1.NODE_MODULES)),
+        
         npmOutputDir: npmExact_1.getNpmOutputDir(outputDir, configDir, npmConfig),
+
         jsxAttributeNameReplace: weappConf.jsxAttributeNameReplace || {}
     };
 
@@ -122,6 +126,8 @@ function setBuildData(appPath, adapter) {
     if (weappConf.customFilesTypes && !util_1.isEmptyObject(weappConf.customFilesTypes)) {
         BuildData.outputFilesTypes = Object.assign({}, BuildData.outputFilesTypes, weappConf.customFilesTypes[adapter] || {});
     }
+
+    
     if (adapter === "quickapp" /* QUICKAPP */) {
         BuildData.originalOutputDir = BuildData.outputDir;
         BuildData.outputDirName = `${BuildData.outputDirName}/src`;
